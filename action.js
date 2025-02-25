@@ -56,6 +56,16 @@ async function buildClient(asanaPAT) {
   }).useAccessToken(asanaPAT).authorize();
 }
 
+async function checkTaskDescription(client, taskId, searchString) {
+  try {
+    const task = await client.tasks.findById(taskId);
+    return task.notes && task.notes.includes(searchString);
+  } catch (error) {
+    core.error(`Error checking task description: ${error.message}`);
+    return false;
+  }
+}
+
 async function action() {  
   const 
     ASANA_PAT = core.getInput('asana-pat', {required: true}),
@@ -90,14 +100,28 @@ async function action() {
     case 'assert-link': {
       const githubToken = core.getInput('github-token', {required: true});
       const linkRequired = core.getInput('link-required', {required: true}) === 'true';
+      const descriptionSearch = core.getInput('description-contains');
       const octokit = new github.GitHub(githubToken);
-      const statusState = (!linkRequired || foundAsanaTasks.length > 0) ? 'success' : 'error';
+
+      let statusState = (!linkRequired || foundAsanaTasks.length > 0) ? 'success' : 'error';
+      let statusDescription = 'asana link not found';
+
+      if (statusState === 'success' && descriptionSearch) {
+        const descriptionChecks = await Promise.all(
+          foundAsanaTasks.map(taskId => checkTaskDescription(client, taskId, descriptionSearch))
+        );
+        if (!descriptionChecks.some(result => result === true)) {
+          statusState = 'error';
+          statusDescription = `Required text "${descriptionSearch}" not found in task description`;
+        }
+      }
+
       core.info(`setting ${statusState} for ${github.context.payload.pull_request.head.sha}`);
       octokit.repos.createStatus({
         ...github.context.repo,
         'context': 'asana-link-presence',
         'state': statusState,
-        'description': 'asana link not found',
+        'description': statusDescription,
         'sha': github.context.payload.pull_request.head.sha,
       });
       break;
