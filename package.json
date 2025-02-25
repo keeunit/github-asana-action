@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/insurify/github-actions.git"
+    "url": "git+https://github.com/keeunit/github-asana-action.git"
   },
   "keywords": [
     "github-actions",
@@ -18,9 +18,9 @@
   "author": "Ali Sajid",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/insurify/github-actions/issues"
+    "url": "https://github.com/keeunit/github-asana-action/issues"
   },
-  "homepage": "https://github.com/insurify/github-actions#readme",
+  "homepage": "https://github.com/keeunit/github-asana-action#readme",
   "dependencies": {
     "@actions/core": "^1.2.0",
     "@actions/github": "^1.1.0",
