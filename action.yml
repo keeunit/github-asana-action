@@ -1,5 +1,5 @@
-name: 'Asana Github Actions'
-description: 'Asana Github Actions'
+name: 'Asana Github Actions + description'
+description: 'Asana Github Actions + description check'
 inputs:
   asana-pat:
     description: 'Asana Public Access Token.'
@@ -28,6 +28,9 @@ inputs:
     required: false
   link-required:
     description: 'When set to true will fail pull requests without an asana link'
+    required: false
+  description-contains:
+    description: 'Text to check for in the ticket description'
     required: false
   is-complete:
     description: 'Is the task complete'
