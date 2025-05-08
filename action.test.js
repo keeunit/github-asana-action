@@ -1,6 +1,56 @@
+// Stateful mock Asana client to avoid real API calls
+jest.mock('asana', () => {
+  const commentsByTask = {};
+  const tasksById = {};
+  return {
+    Client: {
+      create: () => ({
+        useAccessToken: () => ({
+          authorize: async () => ({
+            tasks: {
+              create: async options => {
+                const task = { gid: '789', completed: false, notes: '', projects: [{ name: 'Asana bot test environment' }], ...options };
+                tasksById[task.gid] = task;
+                return task;
+              },
+              delete: async () => {},
+              findById: async id => {
+                return tasksById[id] || { gid: id, notes: '', projects: [{ name: 'Asana bot test environment' }], completed: false };
+              },
+              update: async (id, { completed }) => {
+                if (tasksById[id]) tasksById[id].completed = completed;
+                return tasksById[id];
+              },
+              addComment: async (taskId, { text }) => {
+                const gid = Date.now().toString();
+                commentsByTask[taskId] = commentsByTask[taskId] || [];
+                commentsByTask[taskId].push({ gid, text });
+                return { gid };
+              },
+              stories: taskId => ({
+                fetch: async () => commentsByTask[taskId] || [],
+              }),
+            },
+            sections: {
+              findByProject: async () => [{ gid: 'S1', name: 'Done' }],
+              addTask: async () => {},
+            },
+            stories: { delete: async () => {} },
+          }),
+        }),
+      }),
+    },
+  };
+});
+
+
 const action = require('./action');
 const core = require('@actions/core');
 const github = require('@actions/github');
+
+// Provide default Asana env vars for tests
+process.env['ASANA_PAT'] = process.env['ASANA_PAT'] || 'dummy';
+process.env['ASANA_PROJECT_ID'] = process.env['ASANA_PROJECT_ID'] || '123';
 
 describe('asana github actions', () => {
   let inputs = {};
@@ -50,7 +100,7 @@ describe('asana github actions', () => {
         'projects': [projectId]
       });
 
-      defaultBody = `Implement https://app.asana.com/0/${projectId}/${task.gid} in record time`;
+      defaultBody = `Implement [task](https://app.asana.com/0/${projectId}/${task.gid}) in record time`;
     })
 
     afterAll(async () => {
