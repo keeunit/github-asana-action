@@ -73,9 +73,11 @@ async function action() {
     TRIGGER_PHRASE = core.getInput('trigger-phrase') || '',
     PULL_REQUEST = github.context.payload.pull_request,
     REGEX_STRING1 = `${TRIGGER_PHRASE}(?:\\s*)https:\/\/app.asana.com\\/(?:\\d+)\\/(?:\\d+)\\/project\\/(?<project>\\d+)\\/task\\/(?<task>\\d+)`,
-    REGEX_STRING2 = `${TRIGGER_PHRASE}(?:\\s*)https:\/\/app.asana.com\\/(\\d+)\\/(?<project>\\d+)\\/(?<task>\\d+)`,
+    REGEX_STRING2 = `${TRIGGER_PHRASE}(?:\\s*)https:\/\/app.asana.com\/(?:\\d+)\/(?:\\d+)\/task\/(?<task>\\d+)`,
+    REGEX_STRING3 = `${TRIGGER_PHRASE}(?:\\s*)https:\/\/app.asana.com\\/(\\d+)\/(?<project>\\d+)\/(?<task>\\d+)`,
     REGEX1 = new RegExp(REGEX_STRING1,'g'),
-    REGEX2 = new RegExp(REGEX_STRING2,'g')
+    REGEX2 = new RegExp(REGEX_STRING2,'g'),
+    REGEX3 = new RegExp(REGEX_STRING3,'g')
   ;
 
   console.log('pull_request', PULL_REQUEST);
@@ -85,7 +87,7 @@ async function action() {
     throw new Error('client authorization failed');
   }
 
-  console.info('looking in body', PULL_REQUEST.body, 'regex1', REGEX_STRING1, 'regex2', REGEX_STRING2);
+  console.info('looking in body', PULL_REQUEST.body, 'regex1', REGEX_STRING1, 'regex2', REGEX_STRING2, 'regex3', REGEX_STRING3);
   let foundAsanaTasks = [];
   let match;
   // first try markdown link style
@@ -97,9 +99,20 @@ async function action() {
     }
     foundAsanaTasks.push(taskId);
   }
-  // fallback to raw URL style if none found
+  // fallback to /num/num/task/num style if none found
   if (foundAsanaTasks.length === 0) {
     while ((match = REGEX2.exec(PULL_REQUEST.body)) !== null) {
+      const taskId = match.groups.task;
+      if (!taskId) {
+        core.error(`Invalid Asana task URL after the trigger phrase ${TRIGGER_PHRASE}`);
+        continue;
+      }
+      foundAsanaTasks.push(taskId);
+    }
+  }
+  // fallback to raw URL style if none found
+  if (foundAsanaTasks.length === 0) {
+    while ((match = REGEX3.exec(PULL_REQUEST.body)) !== null) {
       const taskId = match.groups.task;
       if (!taskId) {
         core.error(`Invalid Asana task URL after the trigger phrase ${TRIGGER_PHRASE}`);

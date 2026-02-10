@@ -150,6 +150,60 @@ describe('asana github actions', () => {
       });
     });
 
+    test('asserting a link with new /num/num/task/num URL format', async () => {
+      inputs = {
+        'asana-pat': asanaPAT,
+        'action': 'assert-link',
+        'link-required': 'true',
+        'github-token': 'fake'
+      }
+      github.context.payload = {
+        pull_request: {
+          'body': `Implement https://app.asana.com/1/498576923516853/task/${task.gid} in record time`,
+          'head': {
+            'sha': '1234567890123456789012345678901234567890'
+          }
+        }
+      };
+
+      const mockCreateStatus = jest.fn()
+      github.GitHub = jest.fn().mockImplementation(() => {
+        return {
+          repos: {
+            createStatus: mockCreateStatus,
+          }
+        }
+      });
+
+      await action.action();
+
+      expect(mockCreateStatus).toHaveBeenCalledWith({
+        owner: 'a-cool-owner',
+        repo: 'a-cool-repo',
+        context: 'asana-link-presence',
+        state: 'success',
+        description: 'asana link not found',
+        sha: '1234567890123456789012345678901234567890',
+      });
+    });
+
+    test('completing task with new /num/num/task/num URL format', async () => {
+      inputs = {
+        'asana-pat': asanaPAT,
+        'action': 'complete-task',
+        'is-complete': 'true'
+      }
+      github.context.payload = {
+        pull_request: {
+          'body': `Implement https://app.asana.com/1/498576923516853/task/${task.gid} in record time`
+        }
+      };
+
+      await expect(action.action()).resolves.toHaveLength(1);
+      const actualTask = await client.tasks.findById(task.gid);
+      expect(actualTask.completed).toBe(true);
+    });
+
     test('creating a comment', async () => {
       inputs = {
         'asana-pat': asanaPAT,
