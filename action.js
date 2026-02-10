@@ -31,7 +31,7 @@ async function findComment(client, taskId, commentId) {
     throw error;
   }
 
-  return stories.find(story => story.text.indexOf(commentId) !== -1);
+  return stories.find(story => story.text && story.text.indexOf(commentId) !== -1);
 }
 
 async function addComment(client, taskId, commentId, text, isPinned) {
